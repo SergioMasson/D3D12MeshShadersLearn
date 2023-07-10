@@ -22,6 +22,7 @@ winrt::com_ptr<ID3D12CommandQueue> g_commandQueue;
 winrt::com_ptr<ID3D12CommandAllocator> g_commandAllocator;
 winrt::com_ptr<ID3D12GraphicsCommandList> g_commandList;
 winrt::com_ptr<ID3D12Resource> g_SwapChainBuffers[ SWAP_CHAIN_BUFFER_COUNT ];
+winrt::com_ptr<ID3D12Resource> g_DepthStencilBuffer;
 
 winrt::com_ptr<ID3D12DescriptorHeap> g_rtvHeap;
 winrt::com_ptr<ID3D12DescriptorHeap> g_dsvHeap;
@@ -126,7 +127,10 @@ void CreateScreenDependentResources(uint32_t width, uint32_t height)
     swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
-    ENGINE_ASSERT_SUCCEEDED(g_dxgiFactory->CreateSwapChain(g_commandQueue.get(), &swapChainDesc, (IDXGISwapChain **)g_swapChain.put_void()), "Fail to create IDXGISwapChain");
+    ENGINE_ASSERT_SUCCEEDED(g_dxgiFactory->CreateSwapChain(g_commandQueue.get(), 
+                                                           &swapChainDesc, 
+                                                           (IDXGISwapChain **)g_swapChain.put_void()), 
+                                                           "Fail to create IDXGISwapChain");
 
     CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle(g_rtvHeap->GetCPUDescriptorHandleForHeapStart());
 
@@ -136,6 +140,30 @@ void CreateScreenDependentResources(uint32_t width, uint32_t height)
         g_device->CreateRenderTargetView(g_SwapChainBuffers[ i ].get(), nullptr, rtvHeapHandle);
         rtvHeapHandle.Offset(1, RTV_DESCRIPTOR_SIZE);
     }
+
+    D3D12_CLEAR_VALUE depthClear{};
+    depthClear.DepthStencil.Depth = 1.0f;
+    depthClear.DepthStencil.Stencil = 0;
+
+    D3D12_RESOURCE_DESC depthStencilDesc{};
+    depthStencilDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    depthStencilDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R16_FLOAT;
+    depthStencilDesc.MipLevels = 0;
+    depthStencilDesc.Height = width;
+    depthStencilDesc.Height = height;
+    depthStencilDesc.SampleDesc.Count = m4xMsaaState ? 4 : 1;
+    depthStencilDesc.SampleDesc.Quality = m4xMsaaState ? (m4xMsaaQuality - 1) : 0;
+    depthStencilDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+    g_device->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), 
+                                      D3D12_HEAP_FLAG_NONE, 
+                                      &depthStencilDesc, 
+                                      D3D12_RESOURCE_STATE_COMMON, 
+                                      &depthClear, 
+                                      __uuidof(g_DepthStencilBuffer),
+                                      g_DepthStencilBuffer.put_void());
+
+    g_device->CreateDepthStencilView(g_DepthStencilBuffer.get(), nullptr, DepthStencilView());
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView() 
@@ -148,13 +176,18 @@ D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView()
     return g_dsvHeap->GetCPUDescriptorHandleForHeapStart();
 }
 
-namespace Eninge
+namespace Engine
 {
     namespace Graphics
     {
         void Initialize()
         {
             CreateD3D12Resources();
+        }
+
+        void Resize(uint32_t width, uint32_t height) 
+        {
+            CreateScreenDependentResources(width, height);
         }
     }
 }
