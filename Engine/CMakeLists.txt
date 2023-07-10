@@ -1,10 +1,14 @@
 set(ENGINE_SOURCES 
     "Source/CoreApp.cpp"
+    "Source/p_CoreApp.h"
+    "Source/d3dx12.h"
     "Source/Utility.cpp"
     "Source/SystemTime.cpp"
+    "Source/Graphics.cpp"
     "Include/Engine/CoreApp.h"
     "Include/Engine/Utility.h"
-    "Include/Engine/SystemTime.h")
+    "Include/Engine/SystemTime.h"
+    "Include/Engine/Graphics.h")
 
 set(ENGINE_NAME Engine)
 

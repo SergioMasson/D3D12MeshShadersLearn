@@ -1,6 +1,7 @@
 #include "Engine/CoreApp.h"
 #include "Engine/Utility.h"
 #include "Engine/SystemTime.h"
+#include "Engine/Graphics.h"
 #include <cstdint>
 
 namespace Engine 
@@ -20,28 +21,21 @@ namespace Engine
     {
         int argc = 0;
         LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-        //CommandLineArgs::Initialize(argc, argv);
-
-        //Graphics::Initialize(game.RequiresRaytracingSupport());
+        Graphics::Initialize();
         SystemTime::Initialize();
-        //GameInput::Initialize();
-        //EngineTuning::Initialize();
-
         game.Startup();
     }
 
     void TerminateApplication(IGameApp& game)
     {
-        //g_CommandManager.IdleGPU();
-
         game.Cleanup();
-
-        //GameInput::Shutdown();
+        Graphics::Shutdown();
     }
 
     bool UpdateApplication(IGameApp& game)
     {
         double frameTime = SystemTime::GetCurrentFrameTime();
+        Graphics::Present();
 
         /*EngineProfiling::Update();
 
@@ -121,7 +115,7 @@ namespace Engine
         } while (UpdateApplication(app));	// Returns false to quit loop
 
         TerminateApplication(app);
-        //Graphics::Shutdown();
+
         return 0;
 	}
 
@@ -130,7 +124,7 @@ namespace Engine
         switch (message)
         {
         case WM_SIZE:
-            //Graphics::Resize((UINT)(UINT64)lParam & 0xFFFF, (UINT)(UINT64)lParam >> 16);
+            Graphics::Resize((uint32_t)(UINT64)lParam & 0xFFFF, (uint32_t)(UINT64)lParam >> 16);
             break;
 
         case WM_DESTROY:
